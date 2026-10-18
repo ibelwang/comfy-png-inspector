@@ -1,5 +1,8 @@
 # ComfyPNG Viewer
 
+[![License: MIT](https://img.shields.io/badge/license-MIT-yellow.svg)](LICENSE)
+[![Platform: Windows](https://img.shields.io/badge/platform-Windows%2010%2F11%20x64-0078d4.svg)](#requirements)
+
 **English** | [简体中文](README.zh-CN.md)
 
 A small, fast Windows viewer for the generation metadata inside ComfyUI and

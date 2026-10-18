@@ -510,3 +510,31 @@ icacls target\release /setintegritylevel "(OI)(CI)M" /T   # 否则 exe 低权限
 copy target\release\comfy-png-inspector.exe dist\ComfyPNG.exe
 ```
 依赖下载与编译都需要 DSH 的「完整权限」。
+
+---
+
+## 15. 开源发布（2026-10-18）
+
+- 仓库：<https://github.com/ibelwang/comfy-png-inspector>（public）
+- 许可证：**MIT**（`LICENSE`，版权署名 "ComfyPNG contributors"；要写个人名就改这一行）
+- 首个 Release：`v0.2.1`，附件 `ComfyPNG.exe`（5.5 MB）
+- 文档：`README.md`（英）、`README.zh-CN.md`（中，顶部有语言切换），截图放 `docs/`
+- CI：暂未启用。`.github/workflows/ci.yml`（windows-latest 跑 `cargo test --release`）写好过，
+  但 `gh` 的 OAuth token 没有 `workflow` scope，推送被 GitHub 拒绝；文件已移除。
+  以后要开 CI：`gh auth refresh -s workflow` 授权后再加文件，或直接在 GitHub 网页上新建。
+- `.gitignore`：`target/`、`dist/`、`reference-python/`、`*.log`（exe 走 Release，不进仓库）
+- 依赖许可：eframe/egui（MIT/Apache-2.0）、image（MIT/Apache-2.0）、serde（MIT/Apache-2.0）、
+  arboard（MIT/Apache-2.0）、rfd（MIT）、windows-sys（MIT/Apache-2.0）、flate2（MIT/Apache-2.0）、
+  fancy-regex（MIT）、dirs（MIT/Apache-2.0）、anyhow（MIT/Apache-2.0）、winres（MIT）——全部为宽松许可，
+  与 MIT 兼容；无需附带源码。`dev/design/` 里有参考 comfy.org 的截图，已在发布前删除，仅保留配色记录。
+- ⚠️ `testdata/` 里有两张用户真实生成的图（`avatar_cyber_00004_.png`、`2026-01-08-…png`）已随仓库公开；
+  若不想公开，换成构造样本并同步改 `tests/parser_tests.rs` 的期望值即可。
+- `PROJECT-NOTES.md` 本身也公开（含本机构建踩坑记录），不想要可在发布前移除。
+
+发版流程：
+```powershell
+cargo build --release
+icacls target\release /setintegritylevel "(OI)(CI)M" /T
+copy target\release\comfy-png-inspector.exe dist\ComfyPNG.exe
+gh release create v0.2.2 dist/ComfyPNG.exe --title "v0.2.2" --notes "…"
+```

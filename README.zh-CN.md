@@ -1,5 +1,8 @@
 # ComfyPNG 查看器
 
+[![License: MIT](https://img.shields.io/badge/license-MIT-yellow.svg)](LICENSE)
+[![Platform: Windows](https://img.shields.io/badge/platform-Windows%2010%2F11%20x64-0078d4.svg)](#系统要求)
+
 [English](README.md) | **简体中文**
 
 一个轻量、快速的 Windows 小工具：打开 ComfyUI 或 Automatic1111 / WebUI 生成的图片，

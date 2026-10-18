@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<style>
+  :root {
+    --bg: #17141b;
+    --bg-2: #1c1922;
+    --surface: #231f2b;
+    --surface-2: #2b2635;
+    --border: #3a3246;
+    --accent: #f2ff59;
+    --accent-soft: rgba(242, 255, 89, 0.08);
+    --text: #f1eef6;
+    --muted: #a79fb5;
+    --muted-2: #948ca3;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1200px; height: 790px; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Segoe UI Variable Text", "Segoe UI", "Microsoft YaHei UI", "Microsoft YaHei", sans-serif;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    border-radius: 12px;
+  }
+
+  .titlebar {
+    height: 48px; flex: 0 0 48px;
+    display: flex; align-items: center; gap: 10px;
+    padding: 0 14px 0 16px;
+    border-bottom: 1px solid rgba(58, 50, 70, 0.55);
+  }
+  .mark {
+    width: 24px; height: 24px; border-radius: 7px;
+    overflow: hidden; display: flex;
+  }
+  .mark svg { width: 100%; height: 100%; display: block; }
+  .title { font-size: 13.5px; font-weight: 600; }
+  .spacer { flex: 1; }
+  .winbtn {
+    width: 28px; height: 28px; border-radius: 50%;
+    border: 1.4px solid rgba(167, 159, 181, 0.42);
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  .body {
+    flex: 1; min-height: 0;
+    display: grid;
+    grid-template-columns: 300px 1fr 360px;
+    gap: 14px;
+    padding: 14px;
+  }
+  .col { min-width: 0; display: flex; flex-direction: column; gap: 12px; min-height: 0; }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 13px 14px;
+    min-width: 0;
+  }
+  .card h2 {
+    font-size: 12.5px; font-weight: 600; color: var(--text);
+    letter-spacing: 0.4px; margin-bottom: 10px;
+  }
+  .muted { color: var(--muted); font-size: 12px; }
+  .muted-2 { color: var(--muted-2); font-size: 11.5px; }
+
+  /* left */
+  .preview { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+  .preview img {
+    width: 100%; height: auto; display: block;
+    border-radius: 9px;
+    border: 1px solid var(--border);
+  }
+  .preview .hint { margin-top: auto; padding-top: 10px; font-size: 10.5px; color: var(--muted-2); }
+  .rows { margin-top: 4px; display: flex; flex-direction: column; gap: 7px; }
+  .row { display: flex; justify-content: space-between; gap: 14px; align-items: baseline; }
+  .row .k { color: var(--muted); font-size: 11.5px; flex: 0 0 auto; }
+  .row .v { color: var(--text); font-size: 11.5px; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .row .v.src { color: var(--text); }
+
+  /* center */
+  .prompt-card { display: flex; flex-direction: column; min-height: 0; }
+  .prompt-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .prompt-head h2 { margin: 0; }
+  .count { color: var(--muted-2); font-size: 11px; }
+  .copy {
+    margin-left: auto;
+    height: 24px; padding: 0 11px; border-radius: 7px;
+    background: var(--accent-soft); color: var(--accent);
+    border: 1px solid rgba(242, 255, 89, 0.28);
+    font-size: 11px; display: flex; align-items: center;
+  }
+  .divider { height: 1px; background: rgba(58, 50, 70, 0.75); margin: 0 -14px 10px; }
+  .prompt-body {
+    flex: 1; min-height: 0; overflow: hidden;
+    font-size: 12.5px; line-height: 1.62; color: #ded9e6;
+    padding-right: 8px;
+    position: relative;
+  }
+  .prompt-body::after {
+    content: ""; position: absolute; right: -2px; top: 4px; bottom: 4px; width: 3px;
+    border-radius: 3px; background: rgba(167, 159, 181, 0.25);
+  }
+  .empty { color: var(--muted-2); font-size: 12.5px; }
+
+  /* right */
+  .right-col { overflow: hidden; }
+  .kv { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; margin-top: 7px; }
+  .kv .k { color: var(--muted); font-size: 11.5px; flex: 0 0 auto; }
+  .kv .v { color: var(--accent); font-size: 11.5px; text-align: right; word-break: break-all; }
+  .kv:first-of-type { margin-top: 0; }
+  .subtitle { color: var(--muted-2); font-size: 10.5px; margin-bottom: 8px; letter-spacing: 0.3px; }
+  .lora-none { color: var(--muted-2); font-size: 11.5px; }
+  .card p { font-size: 11.5px; line-height: 1.6; color: var(--muted); }
+
+  .statusbar {
+    height: 32px; flex: 0 0 32px;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 16px;
+    border-top: 1px solid rgba(58, 50, 70, 0.45);
+    color: var(--muted-2); font-size: 11px;
+  }
+</style>
+</head>
+<body>
+  <div class="titlebar">
+    <div class="mark">
+      <svg viewBox="0 0 256 256">
+        <rect width="256" height="256" rx="58" fill="#f2ff59"/>
+        <rect x="62" y="72" width="132" height="112" rx="20" fill="none" stroke="#17141b" stroke-width="12"/>
+        <circle cx="100" cy="112" r="12" fill="#17141b"/>
+        <path d="M72 166 L112 126 L146 160 L166 140 L184 158" fill="none" stroke="#17141b" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <div class="title">ComfyPNG 查看器</div>
+    <div class="spacer"></div>
+    <div class="winbtn">
+      <svg width="11" height="11" viewBox="0 0 12 12"><path d="M2.5 6h7" stroke="#a79fb5" stroke-width="1.4" stroke-linecap="round"/></svg>
+    </div>
+    <div class="winbtn">
+      <svg width="11" height="11" viewBox="0 0 12 12"><path d="M3 3l6 6M9 3l-6 6" stroke="#a79fb5" stroke-width="1.4" stroke-linecap="round"/></svg>
+    </div>
+  </div>
+
+  <div class="body">
+    <div class="col">
+      <div class="card preview">
+        <h2>预览</h2>
+        <img src="../testdata/avatar_cyber_00004_.png" alt="">
+        <div class="rows">
+          <div class="row"><span class="k">文件名</span><span class="v">avatar_cyber_00004_.png</span></div>
+          <div class="row"><span class="k">尺寸</span><span class="v">1024 × 1024</span></div>
+          <div class="row"><span class="k">大小</span><span class="v">1.33 MB</span></div>
+          <div class="row"><span class="k">格式</span><span class="v">PNG</span></div>
+          <div class="row"><span class="k">来源</span><span class="v src">ComfyUI</span></div>
+        </div>
+        <div class="hint">单击换图 · 双击用默认程序打开</div>
+      </div>
+    </div>
+
+    <div class="col">
+      <div class="card prompt-card" style="flex: 1.55;">
+        <div class="prompt-head">
+          <h2>正向提示词</h2>
+          <span class="count">957 字</span>
+          <span class="copy">复制</span>
+        </div>
+        <div class="divider"></div>
+        <div class="prompt-body">Realistic. Cinematic cyberpunk film still, extreme close-up head shot, square frame, the face fills about 80% of the frame from the top of the head to the chin. A cute, beautiful young woman with glossy violet-purple hair in a choppy layered cut with wispy bangs, delicate features, big bright eyes and long lashes, her face turned slightly to the side as she gazes off into the distance past the left edge of the frame, not looking at the camera, a faint dreamy smile. A tiny glowing holographic chip decal on her cheekbone and small silver ear cuffs. Neon two-tone lighting: hot magenta neon light from the left and electric cyan neon light from the right paint opposite sides of her face, with deep shadows between them and neon reflections in her eyes and on her glossy lips. Dark rainy city night behind her reduced to soft blurred neon bokeh. Fine natural skin texture, light mist in the air. 85mm lens, shallow depth of field, subtle 35mm film grain.</div>
+      </div>
+
+      <div class="card prompt-card" style="flex: 0.6;">
+        <div class="prompt-head">
+          <h2>负向提示词</h2>
+          <span class="count">0 字</span>
+          <span class="copy">复制</span>
+        </div>
+        <div class="divider"></div>
+        <div class="prompt-body"><span class="empty">（空）</span></div>
+      </div>
+    </div>
+
+    <div class="col right-col">
+      <div class="card">
+        <h2>模型</h2>
+        <div class="kv"><span class="v">Krea2\krea2TurboOfficialComfy_krea2TurboBf16.safetensors</span></div>
+      </div>
+
+      <div class="card">
+        <h2>LoRA</h2>
+        <div class="lora-none">未找到</div>
+      </div>
+
+      <div class="card">
+        <h2>采样参数</h2>
+        <div class="subtitle">KSampler</div>
+        <div class="kv"><span class="k">Seed</span><span class="v">1806789522</span></div>
+        <div class="kv"><span class="k">步数</span><span class="v">8</span></div>
+        <div class="kv"><span class="k">CFG</span><span class="v">1</span></div>
+        <div class="kv"><span class="k">采样器</span><span class="v">er_sde</span></div>
+        <div class="kv"><span class="k">调度器</span><span class="v">simple</span></div>
+        <div class="kv"><span class="k">降噪</span><span class="v">1</span></div>
+      </div>
+
+      <div class="card">
+        <h2>其他</h2>
+        <div class="kv"><span class="k">VAE</span><span class="v">qwen_image_vae.safetensors</span></div>
+      </div>
+
+      <div class="card">
+        <h2>提示</h2>
+        <p>· 负向为空：工作流用 ConditioningZeroOut 清零负向（Krea2 / Flux 类模型通常不需要负向）。</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="statusbar">
+    <span>avatar_cyber_00004_.png</span>
+    <span>1.33 MB</span>
+  </div>
+</body>
+</html>

@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<style>
+  :root {
+    --bg: #17141b; --surface: #231f2b; --border: #3a3246;
+    --accent: #f2ff59; --text: #f1eef6; --muted: #a79fb5; --muted-2: #948ca3;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1200px; height: 640px; }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: "Segoe UI Variable Text", "Segoe UI", "Microsoft YaHei UI", "Microsoft YaHei", sans-serif;
+    padding: 34px 40px;
+    display: flex; flex-direction: column; gap: 24px;
+  }
+  h1 { font-size: 17px; font-weight: 600; letter-spacing: .3px; }
+  .sub { font-size: 12px; color: var(--muted-2); margin-top: 4px; }
+  .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 22px; }
+  .opt { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 20px 18px; }
+  .opt .icon { width: 172px; height: 172px; margin: 0 auto 14px; }
+  .opt .icon svg { width: 100%; height: 100%; display: block; }
+  .opt .name { font-size: 13px; font-weight: 600; }
+  .opt .desc { font-size: 11px; color: var(--muted-2); margin-top: 4px; line-height: 1.5; }
+  .strip {
+    margin-top: 14px; height: 40px; border-radius: 10px;
+    background: #1d1a23; border: 1px solid rgba(58,50,70,.6);
+    display: flex; align-items: center; gap: 8px; padding: 0 10px;
+  }
+  .strip .small { width: 22px; height: 22px; }
+  .strip .small svg { width: 100%; height: 100%; display: block; }
+  .strip .t { font-size: 11.5px; color: var(--text); }
+  .strip .gap { flex: 1; }
+  .strip .ctrl { width: 18px; height: 18px; border-radius: 50%; border: 1.2px solid rgba(167,159,181,.45); }
+</style>
+</head>
+<body>
+  <div>
+    <h1>图标方案 · 同一个应用，四种味道</h1>
+    <div class="sub">上面是大图（256 @2x），下面是它在标题栏 22px 时的样子</div>
+  </div>
+
+  <div class="grid">
+    <!-- A: 黄绿底 + 深色鲸鱼 -->
+    <div class="opt">
+      <div class="icon">
+        <svg viewBox="0 0 256 256">
+          <rect width="256" height="256" rx="58" fill="#f2ff59"/>
+          <ellipse cx="118" cy="156" rx="74" ry="47" fill="#17141b"/>
+          <path d="M190 156 L242 112 L232 156 L242 200 Z" fill="#17141b"/>
+          <circle cx="88" cy="144" r="8.5" fill="#f2ff59"/>
+          <circle cx="94" cy="82" r="9" fill="#17141b"/>
+          <circle cx="124" cy="66" r="7" fill="#17141b"/>
+          <circle cx="70" cy="100" r="5.5" fill="#17141b"/>
+        </svg>
+      </div>
+      <div class="name">A · 黄绿底 + 深色鲸鱼</div>
+      <div class="desc">换色版的现有图标，小鲸一眼认得出</div>
+      <div class="strip">
+        <div class="small"><svg viewBox="0 0 256 256"><rect width="256" height="256" rx="58" fill="#f2ff59"/><ellipse cx="118" cy="156" rx="74" ry="47" fill="#17141b"/><path d="M190 156 L242 112 L232 156 L242 200 Z" fill="#17141b"/><circle cx="88" cy="144" r="8.5" fill="#f2ff59"/><circle cx="94" cy="82" r="9" fill="#17141b"/><circle cx="124" cy="66" r="7" fill="#17141b"/><circle cx="70" cy="100" r="5.5" fill="#17141b"/></svg></div>
+        <div class="t">ComfyPNG 查看器</div><div class="gap"></div>
+        <div class="ctrl"></div><div class="ctrl"></div>
+      </div>
+    </div>
+
+    <!-- B: 深色底 + 黄绿鲸鱼 -->
+    <div class="opt">
+      <div class="icon">
+        <svg viewBox="0 0 256 256">
+          <rect width="256" height="256" rx="58" fill="#231f2b"/>
+          <rect x="1" y="1" width="254" height="254" rx="57" fill="none" stroke="#3a3246" stroke-width="2"/>
+          <ellipse cx="118" cy="156" rx="74" ry="47" fill="#f2ff59"/>
+          <path d="M190 156 L242 112 L232 156 L242 200 Z" fill="#f2ff59"/>
+          <circle cx="88" cy="144" r="8.5" fill="#17141b"/>
+          <circle cx="94" cy="82" r="9" fill="#f2ff59"/>
+          <circle cx="124" cy="66" r="7" fill="#f2ff59"/>
+          <circle cx="70" cy="100" r="5.5" fill="#f2ff59"/>
+        </svg>
+      </div>
+      <div class="name">B · 深色底 + 黄绿鲸鱼</div>
+      <div class="desc">和界面同底，放在任务栏里更低调</div>
+      <div class="strip">
+        <div class="small"><svg viewBox="0 0 256 256"><rect width="256" height="256" rx="58" fill="#231f2b"/><rect x="1" y="1" width="254" height="254" rx="57" fill="none" stroke="#3a3246" stroke-width="2"/><ellipse cx="118" cy="156" rx="74" ry="47" fill="#f2ff59"/><path d="M190 156 L242 112 L232 156 L242 200 Z" fill="#f2ff59"/><circle cx="88" cy="144" r="8.5" fill="#17141b"/><circle cx="94" cy="82" r="9" fill="#f2ff59"/><circle cx="124" cy="66" r="7" fill="#f2ff59"/><circle cx="70" cy="100" r="5.5" fill="#f2ff59"/></svg></div>
+        <div class="t">ComfyPNG 查看器</div><div class="gap"></div>
+        <div class="ctrl"></div><div class="ctrl"></div>
+      </div>
+    </div>
+
+    <!-- C: 黄绿底 + 图片符号 -->
+    <div class="opt">
+      <div class="icon">
+        <svg viewBox="0 0 256 256">
+          <rect width="256" height="256" rx="58" fill="#f2ff59"/>
+          <rect x="62" y="72" width="132" height="112" rx="20" fill="none" stroke="#17141b" stroke-width="12"/>
+          <circle cx="100" cy="112" r="12" fill="#17141b"/>
+          <path d="M72 166 L112 126 L146 160 L166 140 L184 158" fill="none" stroke="#17141b" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="name">C · 黄绿底 + 图片符号</div>
+      <div class="desc">功能导向，和拖放区的图标是同一个语言</div>
+      <div class="strip">
+        <div class="small"><svg viewBox="0 0 256 256"><rect width="256" height="256" rx="58" fill="#f2ff59"/><rect x="62" y="72" width="132" height="112" rx="20" fill="none" stroke="#17141b" stroke-width="12"/><circle cx="100" cy="112" r="12" fill="#17141b"/><path d="M72 166 L112 126 L146 160 L166 140 L184 158" fill="none" stroke="#17141b" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="t">ComfyPNG 查看器</div><div class="gap"></div>
+        <div class="ctrl"></div><div class="ctrl"></div>
+      </div>
+    </div>
+
+    <!-- D: 深色底 + 黄绿线框图片 -->
+    <div class="opt">
+      <div class="icon">
+        <svg viewBox="0 0 256 256">
+          <rect width="256" height="256" rx="58" fill="#231f2b"/>
+          <rect x="1" y="1" width="254" height="254" rx="57" fill="none" stroke="#3a3246" stroke-width="2"/>
+          <rect x="62" y="72" width="132" height="112" rx="20" fill="none" stroke="#f2ff59" stroke-width="10"/>
+          <circle cx="100" cy="112" r="10" fill="#f2ff59"/>
+          <path d="M74 164 L112 126 L146 160 L166 140 L182 156" fill="none" stroke="#f2ff59" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="name">D · 深色底 + 黄绿线框</div>
+      <div class="desc">最克制的一版，和启动页的拖放图标几乎同款</div>
+      <div class="strip">
+        <div class="small"><svg viewBox="0 0 256 256"><rect width="256" height="256" rx="58" fill="#231f2b"/><rect x="1" y="1" width="254" height="254" rx="57" fill="none" stroke="#3a3246" stroke-width="2"/><rect x="62" y="72" width="132" height="112" rx="20" fill="none" stroke="#f2ff59" stroke-width="10"/><circle cx="100" cy="112" r="10" fill="#f2ff59"/><path d="M74 164 L112 126 L146 160 L166 140 L182 156" fill="none" stroke="#f2ff59" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="t">ComfyPNG 查看器</div><div class="gap"></div>
+        <div class="ctrl"></div><div class="ctrl"></div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

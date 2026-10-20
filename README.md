@@ -18,6 +18,10 @@ LoRAs and sampler settings at a glance — no browser, no Python, no server.
 - **ComfyUI node graph** — KSampler / KSamplerAdvanced / SamplerCustom(Advanced),
   the Flux guider chain, rgthree Power Lora Loader, CR text concatenation,
   ConditioningZeroOut, multi-sampler (hires-fix) workflows.
+- **Custom nodes** — Impact Pack wildcard nodes (`ImpactWildcardEncode`),
+  `Image Saver` nodes, and seeds / CFG / steps routed through literal nodes.
+  When the graph hides a value, the A1111 `parameters` block in the same PNG
+  fills the gap (graph values always win).
 - **Automatic1111 / WebUI** — the `parameters` block in a PNG text chunk or in a
   JPEG `UserComment`, including `<lora:name:weight>` tags.
 - **Copy anything** — click a model, seed, sampler or LoRA value to copy it.

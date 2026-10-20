@@ -108,6 +108,11 @@ fn collect_texts(
         return Vec::new();
     }
 
+    // Impact pack wildcard nodes: the resolved text lives in `populated_text`.
+    if let Some(text) = impact_wildcard_text(node) {
+        return vec![text];
+    }
+
     if is_text_encoder(&class_type) {
         let mut found = Vec::new();
         for key in ["text", "prompt", "text_g", "text_l"] {
@@ -192,6 +197,10 @@ fn collect_strings(
 fn all_text_encoder_texts(graph: &Graph) -> Vec<String> {
     let mut texts = Vec::new();
     for node in graph.map.values() {
+        if let Some(text) = impact_wildcard_text(node) {
+            texts.push(text);
+            continue;
+        }
         if !is_text_encoder(&node_class(node)) {
             continue;
         }
@@ -256,10 +265,20 @@ fn collect_models(graph: &Graph) -> Vec<String> {
         if class_type.contains("lora") {
             continue;
         }
-        // Skip auxiliary loaders (SAM segmentation, YOLO/bbox detectors, ...).
-        if ["yolo", "segment", "detector", "bbox", "samloader", "sam2"]
-            .iter()
-            .any(|marker| class_type.contains(marker))
+        // Skip auxiliary loaders (SAM segmentation, YOLO/bbox detectors,
+        // upscale models, ...): they also expose `model_name` but are not the
+        // checkpoint the user means by "the model".
+        if [
+            "yolo",
+            "segment",
+            "detector",
+            "bbox",
+            "samloader",
+            "sam2",
+            "upscalemodel",
+        ]
+        .iter()
+        .any(|marker| class_type.contains(marker))
         {
             continue;
         }
@@ -358,17 +377,40 @@ fn collect_clip_skip(graph: &Graph) -> Option<i64> {
     None
 }
 
-fn is_sampler_node(node: &Value) -> bool {
-    let class_type = norm(&node_class(node));
-    if matches!(
-        class_type.as_str(),
-        "ksampler" | "ksampleradvanced" | "samplercustom" | "samplercustomadvanced"
-    ) {
-        return true;
+/// How much a node looks like an actual sampling stage.
+///
+/// `SamplerCustomAdvanced` wins over a plain `KSampler`; `KSamplerSelect` and
+/// anything named `... Saver` only *name* a sampler and must score 0.
+fn sampler_score(class_type: &str) -> i32 {
+    let class = norm(class_type);
+    if class.contains("samplercustomadvanced") {
+        4
+    } else if class.contains("ksampler") && !class.contains("select") && !class.contains("saver") {
+        3
+    } else if class.contains("samplercustom") {
+        2
+    } else {
+        0
     }
-    // "KSampler to Image Saver" and friends report sampler settings but are
-    // not actual sampling stages.
-    class_type.contains("ksampler") && !class_type.contains("select") && !class_type.contains("saver")
+}
+
+fn is_sampler_node(node: &Value) -> bool {
+    sampler_score(&node_class(node)) > 0
+}
+
+/// Inputs of an "Image Saver" node that carries positive/negative conditioning.
+fn find_image_saver_inputs(graph: &Graph) -> Option<Map<String, Value>> {
+    for id in &graph.order {
+        let node = &graph.map[id];
+        if !norm(&node_class(node)).contains("imagesaver") {
+            continue;
+        }
+        let inputs = node_inputs(node);
+        if inputs.contains_key("positive") || inputs.contains_key("negative") {
+            return Some(inputs);
+        }
+    }
+    None
 }
 
 fn is_text_encoder(class_type: &str) -> bool {
@@ -377,6 +419,24 @@ fn is_text_encoder(class_type: &str) -> bool {
         return true;
     }
     normalised.contains("textencoder") && !normalised.contains("loader")
+}
+
+/// `ImpactWildcardEncode` (and friends) store the resolved prompt in
+/// `populated_text`; `wildcard_text` is only the raw template.
+fn impact_wildcard_text(node: &Value) -> Option<String> {
+    if !norm(&node_class(node)).contains("impactwildcard") {
+        return None;
+    }
+    let inputs = node_inputs(node);
+    for key in ["populated_text", "wildcard_text", "text"] {
+        if let Some(Value::String(text)) = inputs.get(key) {
+            let trimmed = text.trim();
+            if !trimmed.is_empty() {
+                return Some(trimmed.to_string());
+            }
+        }
+    }
+    None
 }
 
 fn build_sampler(graph: &Graph, id: &str, node: &Value) -> SamplerInfo {
@@ -390,12 +450,10 @@ fn build_sampler(graph: &Graph, id: &str, node: &Value) -> SamplerInfo {
         ..Default::default()
     };
     info.model_link = inputs.get("model").and_then(linked_id).unwrap_or_default();
-    info.seed = inputs
-        .get("seed")
-        .or_else(|| inputs.get("noise_seed"))
-        .cloned();
-    info.steps = inputs.get("steps").and_then(as_int);
-    info.cfg = inputs.get("cfg").and_then(as_float);
+    info.seed = follow_scalar(graph, inputs.get("seed"), SCALAR_KEYS)
+        .or_else(|| follow_scalar(graph, inputs.get("noise_seed"), SCALAR_KEYS));
+    info.steps = follow_scalar(graph, inputs.get("steps"), SCALAR_KEYS).as_ref().and_then(as_int);
+    info.cfg = follow_scalar(graph, inputs.get("cfg"), SCALAR_KEYS).as_ref().and_then(as_float);
     info.sampler_name = inputs.get("sampler_name").and_then(as_str);
     info.scheduler = inputs.get("scheduler").and_then(as_str);
     info.denoise = inputs.get("denoise").and_then(as_float);
@@ -412,7 +470,10 @@ fn build_sampler(graph: &Graph, id: &str, node: &Value) -> SamplerInfo {
             if info.negative.is_empty() {
                 info.negative = trace_text(guider_inputs.get("negative"), graph);
             }
-            if let Some(cfg) = guider_inputs.get("cfg").and_then(as_float) {
+            if let Some(cfg) = follow_scalar(graph, guider_inputs.get("cfg"), SCALAR_KEYS)
+                .as_ref()
+                .and_then(as_float)
+            {
                 info.cfg = Some(cfg);
             }
         }
@@ -428,7 +489,10 @@ fn build_sampler(graph: &Graph, id: &str, node: &Value) -> SamplerInfo {
             if let Some(scheduler) = sigma_inputs.get("scheduler").and_then(as_str) {
                 info.scheduler = Some(scheduler);
             }
-            if let Some(steps) = sigma_inputs.get("steps").and_then(as_int) {
+            if let Some(steps) = follow_scalar(graph, sigma_inputs.get("steps"), SCALAR_KEYS)
+                .as_ref()
+                .and_then(as_int)
+            {
                 info.steps = Some(steps);
             }
             if let Some(denoise) = sigma_inputs.get("denoise").and_then(as_float) {
@@ -437,8 +501,11 @@ fn build_sampler(graph: &Graph, id: &str, node: &Value) -> SamplerInfo {
         }
 
         if let Some(noise) = inputs.get("noise").and_then(|v| graph.node_at(v)) {
-            if let Some(seed) = node_inputs(noise).get("noise_seed") {
-                info.seed = Some(seed.clone());
+            let noise_inputs = node_inputs(noise);
+            if let Some(seed) = follow_scalar(graph, noise_inputs.get("noise_seed"), SCALAR_KEYS)
+                .or_else(|| follow_scalar(graph, noise_inputs.get("seed"), SCALAR_KEYS))
+            {
+                info.seed = Some(seed);
             }
         }
 
@@ -474,12 +541,39 @@ pub fn parse_comfy_prompt(payload: &Value, meta: &mut ImageMeta) -> anyhow::Resu
         meta.notes
             .push("没有识别到采样器节点（KSampler / SamplerCustom 等）。".into());
     } else {
-        // The first sampler that actually carries text wins as the "main" one.
-        let main = samplers
-            .iter()
-            .find(|s| !s.positive.is_empty() || !s.negative.is_empty())
-            .unwrap_or(&samplers[0])
-            .clone();
+        // The main sampler prefers one that actually carries text, then the
+        // highest sampler score (`SamplerCustomAdvanced` > `KSampler` >
+        // `SamplerCustom`). Ties keep the first node in id order.
+        let mut main = samplers[0].clone();
+        let mut best = i32::MIN;
+        for sampler in &samplers {
+            let has_text = !sampler.positive.is_empty() || !sampler.negative.is_empty();
+            let score = sampler_score(&sampler.class_type) + if has_text { 10 } else { 0 };
+            if score > best {
+                best = score;
+                main = sampler.clone();
+            }
+        }
+
+        // Some workflows route the conditioning through an "Image Saver" node
+        // instead of the sampler.
+        if main.positive.is_empty() || main.negative.is_empty() {
+            if let Some(saver_inputs) = find_image_saver_inputs(&graph) {
+                if main.positive.is_empty() {
+                    main.positive = trace_text(saver_inputs.get("positive"), &graph);
+                }
+                if main.negative.is_empty() {
+                    main.negative = trace_text(saver_inputs.get("negative"), &graph);
+                }
+                if main.sampler_name.is_none() {
+                    main.sampler_name = saver_inputs.get("sampler_name").and_then(as_str);
+                }
+                if let Some(slot) = samplers.iter_mut().find(|s| s.node_id == main.node_id) {
+                    *slot = main.clone();
+                }
+            }
+        }
+
         meta.positive = main.positive.clone();
         meta.negative = main.negative.clone();
 
@@ -596,6 +690,42 @@ fn linked_id(value: &Value) -> Option<String> {
         Value::Number(n) if n.is_i64() || n.is_u64() => Some(n.to_string()),
         _ => None,
     }
+}
+
+/// Literal nodes used by custom workflows to feed numbers into other nodes.
+const SCALAR_KEYS: &[&str] = &["seed", "noise_seed", "value", "int", "float", "number"];
+
+/// A scalar value, or the scalar behind a link (`["172", 0]` -> node 172's
+/// `seed`). Custom workflows route seeds / CFG / steps through literal nodes.
+fn follow_scalar(graph: &Graph, value: Option<&Value>, keys: &[&str]) -> Option<Value> {
+    let value = value?;
+    if value.is_number() || value.is_string() {
+        return Some(value.clone());
+    }
+    let id = linked_id(value)?;
+    let node = graph.node(&id)?;
+    let inputs = node_inputs(node);
+    for key in keys {
+        if let Some(inner) = inputs.get(*key) {
+            if inner.is_number() || inner.is_string() {
+                return Some(inner.clone());
+            }
+            // One more hop: Switch / router nodes point at the literal.
+            if let Some(next_id) = linked_id(inner) {
+                if let Some(next) = graph.node(&next_id) {
+                    let next_inputs = node_inputs(next);
+                    for key in keys {
+                        if let Some(v) = next_inputs.get(*key) {
+                            if v.is_number() || v.is_string() {
+                                return Some(v.clone());
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    None
 }
 
 fn norm(text: &str) -> String {

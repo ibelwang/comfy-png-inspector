@@ -164,10 +164,14 @@ pub fn load_meta(path: &Path) -> anyhow::Result<ImageMeta> {
     };
     meta.has_workflow = !workflow_raw.is_empty();
 
+    let mut comfy_parsed = false;
     if !prompt_raw.is_empty() {
         match serde_json::from_str::<Value>(&prompt_raw) {
             Ok(payload) => match comfy::parse_comfy_prompt(&payload, &mut meta) {
-                Ok(()) => meta.source = Source::ComfyUI,
+                Ok(()) => {
+                    meta.source = Source::ComfyUI;
+                    comfy_parsed = true;
+                }
                 Err(err) => meta.notes.push(format!("ComfyUI prompt 解析失败：{err}")),
             },
             Err(err) => meta
@@ -176,7 +180,19 @@ pub fn load_meta(path: &Path) -> anyhow::Result<ImageMeta> {
         }
     }
 
-    if meta.source == Source::Unknown && !parameters_raw.is_empty() {
+    if comfy_parsed && !parameters_raw.is_empty() {
+        // The node graph wins; the A1111 `parameters` block only fills the gaps
+        // left by custom nodes (wildcard text, literal seeds, sampler names).
+        let mut fallback = ImageMeta::default();
+        if a1111::parse_a1111(&parameters_raw, &mut fallback).is_ok()
+            && merge_missing(&mut meta, &fallback)
+        {
+            meta.raw_parameters = parameters_raw.clone();
+            meta.notes.push(
+                "ComfyUI 节点图缺失的字段已用同文件的 A1111 `parameters` 文本块补齐。".into(),
+            );
+        }
+    } else if meta.source == Source::Unknown && !parameters_raw.is_empty() {
         match a1111::parse_a1111(&parameters_raw, &mut meta) {
             Ok(()) => {
                 meta.source = Source::A1111;
@@ -200,6 +216,93 @@ pub fn load_meta(path: &Path) -> anyhow::Result<ImageMeta> {
     }
 
     Ok(meta)
+}
+
+/// Fill fields the ComfyUI graph could not provide from the A1111 `parameters`
+/// block (custom nodes hide text, seeds, sampler names behind helper nodes).
+/// Graph values always win. Returns true when anything was copied.
+fn merge_missing(meta: &mut ImageMeta, fallback: &ImageMeta) -> bool {
+    let mut changed = false;
+
+    if meta.positive.trim().is_empty() && !fallback.positive.trim().is_empty() {
+        meta.positive = fallback.positive.clone();
+        changed = true;
+    }
+    if meta.negative.trim().is_empty() && !fallback.negative.trim().is_empty() {
+        meta.negative = fallback.negative.clone();
+        changed = true;
+    }
+    if meta.models.is_empty() && !fallback.models.is_empty() {
+        meta.models = fallback.models.clone();
+        changed = true;
+    }
+    if meta.loras.is_empty() && !fallback.loras.is_empty() {
+        meta.loras = fallback.loras.clone();
+        changed = true;
+    }
+    if meta.vae.is_empty() && !fallback.vae.is_empty() {
+        meta.vae = fallback.vae.clone();
+        changed = true;
+    }
+    if meta.clip_skip.is_none() {
+        if let Some(value) = fallback.clip_skip {
+            meta.clip_skip = Some(value);
+            changed = true;
+        }
+    }
+    if meta.width == 0 && fallback.width > 0 {
+        meta.width = fallback.width;
+        changed = true;
+    }
+    if meta.height == 0 && fallback.height > 0 {
+        meta.height = fallback.height;
+        changed = true;
+    }
+
+    if meta.samplers.is_empty() && !fallback.samplers.is_empty() {
+        meta.samplers = fallback.samplers.clone();
+        changed = true;
+    } else if let (Some(main), Some(fb)) = (meta.samplers.first_mut(), fallback.samplers.first())
+    {
+        if main.sampler_name.is_none() {
+            if let Some(value) = &fb.sampler_name {
+                main.sampler_name = Some(value.clone());
+                changed = true;
+            }
+        }
+        if main.scheduler.is_none() {
+            if let Some(value) = &fb.scheduler {
+                main.scheduler = Some(value.clone());
+                changed = true;
+            }
+        }
+        if main.steps.is_none() {
+            if let Some(value) = fb.steps {
+                main.steps = Some(value);
+                changed = true;
+            }
+        }
+        if main.cfg.is_none() {
+            if let Some(value) = fb.cfg {
+                main.cfg = Some(value);
+                changed = true;
+            }
+        }
+        if main.denoise.is_none() {
+            if let Some(value) = fb.denoise {
+                main.denoise = Some(value);
+                changed = true;
+            }
+        }
+        if main.seed.is_none() {
+            if let Some(value) = &fb.seed {
+                main.seed = Some(value.clone());
+                changed = true;
+            }
+        }
+    }
+
+    changed
 }
 
 /// Fill size/format from the image header and return the JPEG UserComment.

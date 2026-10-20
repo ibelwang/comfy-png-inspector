@@ -16,6 +16,9 @@
   或直接 `ComfyPNG.exe "C:\图片路径.png"`。
 - **ComfyUI 节点图**：KSampler / KSamplerAdvanced / SamplerCustom(Advanced)、Flux guider 链、
   rgthree Power Lora Loader、CR 文本拼接、ConditioningZeroOut、多采样器（高清修复）工作流。
+- **自定义节点**：Impact Pack 通配符节点（`ImpactWildcardEncode`）、`Image Saver` 节点，
+  以及通过字面量节点传入的 Seed / CFG / 步数。节点图里取不到的值，会用同 PNG 内
+  A1111 `parameters` 文本块补缺（图里的值优先）。
 - **Automatic1111 / WebUI**：PNG 文本块里的 `parameters`，或 JPEG 的 EXIF `UserComment`，
   包括 `<lora:名称:权重>` 标签。
 - **点一下就复制**：模型名、Seed、采样器、LoRA 等参数值都可以点击复制。

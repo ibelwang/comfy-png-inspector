@@ -2,7 +2,7 @@
 
 use std::path::PathBuf;
 
-use comfy_png_inspector::parser::{self, ImageMeta, Source};
+use comfy_png_inspector::parser::{self, comfy, ImageMeta, Source};
 
 fn testdata(name: &str) -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -191,4 +191,58 @@ fn long_names_fixture() {
     approx(meta.loras[0].strength_model, 0.8);
     approx(meta.loras[0].strength_clip, 0.6);
     assert_eq!(meta.samplers[0].seed_text().unwrap(), "202610182026101");
+}
+
+/// ComfyUI workflows with custom nodes: `SamplerCustomAdvanced` + `CFGGuider`
+/// feeding `ImpactWildcardEncode` text nodes, and a `KSamplerSelect` that must
+/// not be mistaken for the real sampler.
+#[test]
+fn parses_custom_sampler_with_wildcard_nodes() {
+    let graph: serde_json::Value = serde_json::from_str(
+        r#"{
+          "82":  {"class_type":"SamplerCustomAdvanced","inputs":{"guider":["103",0]}},
+          "103": {"class_type":"CFGGuider","inputs":{"positive":["167",2],"negative":["168",2]}},
+          "167": {"class_type":"ImpactWildcardEncode","inputs":{"populated_text":"1girl, silver hair","wildcard_text":"ignored"}},
+          "168": {"class_type":"ImpactWildcardEncode","inputs":{"populated_text":"lowres, bad anatomy"}},
+          "166": {"class_type":"Checkpoint Loader with Name (Image Saver)","inputs":{"ckpt_name":"ntrMIX.safetensors"}},
+          "217": {"class_type":"KSamplerSelect","inputs":{"sampler_name":["169",0]}}
+        }"#,
+    )
+    .unwrap();
+
+    let mut meta = ImageMeta::default();
+    comfy::parse_comfy_prompt(&graph, &mut meta).unwrap();
+
+    assert_eq!(meta.positive, "1girl, silver hair");
+    assert_eq!(meta.negative, "lowres, bad anatomy");
+    assert_eq!(meta.models, vec!["ntrMIX.safetensors"]);
+}
+
+/// Real world sample: the graph stores text in `ImpactWildcardEncode` and the
+/// sampler never exposes steps/CFG/seed/sampler name directly, so those must be
+/// merged from the same file's A1111 `parameters` block.
+#[test]
+fn parses_ntrmix_sample() {
+    let path = std::path::Path::new(
+        r"D:\ComfyUI\Outputs\Backup\2024-12-31\2024-12-31-205233_ntrMIXIllustriousXL_v40_694162098710117.png",
+    );
+    if !path.exists() {
+        eprintln!("ntrMIX sample not present on this machine, skipped");
+        return;
+    }
+
+    let meta = parser::load_meta(path).expect("sample should parse");
+    assert_eq!(meta.source, Source::ComfyUI);
+    assert!(meta.positive.contains("red_eyes"));
+    assert!(meta.negative.contains("lowres"));
+    assert_eq!(meta.models, vec!["ntrMIXIllustriousXL_v40.safetensors"]);
+
+    let sampler = &meta.samplers[0];
+    assert_eq!(
+        sampler.sampler_name.as_deref(),
+        Some("dpmpp_2m_dy_cfg_pp_ays+")
+    );
+    assert_eq!(sampler.steps, Some(25));
+    approx(sampler.cfg, 6.0);
+    assert_eq!(sampler.seed_text().unwrap(), "694162098710117");
 }

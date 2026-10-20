@@ -33,3 +33,6 @@ strip = true
 
 [build-dependencies]
 winres = "0.1"
+
+[dev-dependencies]
+serde_json = { version = "1", features = ["preserve_order"] }

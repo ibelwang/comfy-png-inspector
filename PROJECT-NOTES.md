@@ -538,3 +538,38 @@ icacls target\release /setintegritylevel "(OI)(CI)M" /T
 copy target\release\comfy-png-inspector.exe dist\ComfyPNG.exe
 gh release create v0.2.2 dist/ComfyPNG.exe --title "v0.2.2" --notes "…"
 ```
+
+---
+
+## 16. 自定义节点提示词修复（2026-10-20）
+
+依据 `docs/comfyui-custom-node-prompt-fix.md`（ComfyVault 的修复记录）移植，样本：
+`D:\ComfyUI\Outputs\Backup\2024-12-31\2024-12-31-205233_ntrMIXIllustriousXL_v40_694162098710117.png`。
+
+### 根因（四个叠加）
+
+1. **采样器选错**：旧逻辑取「第一个有文本的采样器」，图上还有 `KSamplerSelect`；虽然它被排除，
+   但真正的问题是 `SamplerCustomAdvanced` 的文本藏在 `CFGGuider` 后面，且自定义采样器链更深。
+   现在按分数选主采样器：`SamplerCustomAdvanced(4) > KSampler(3) > SamplerCustom(2)`，有文本 +10，
+   同分保留节点 id 靠前的那个。
+2. **不认识 `ImpactWildcardEncode`**：文本在 `populated_text`（实际结果），`wildcard_text` 只是模板。
+   现在优先取 `populated_text`，再退回 `wildcard_text` / `text`。
+3. **图里有 `parameters` 也不回退**：现在 ComfyUI 解析完成后，把同文件的 A1111 `parameters`
+   解析成临时结果，只补空字段（提示词、模型、LoRA、VAE、clip skip、采样器的 name/scheduler/steps/cfg/denoise/seed）；
+   图里的值永远优先。补了字段会加一条提示，并把原文存进 `raw_parameters`。
+4. **模型兜底把放大模型当成主模型**：`UpscaleModelLoader` 也有 `model_name`（4x_NMKD…），
+   现在与 SAM/YOLO/bbox 一起排除。
+
+另外：
+- `seed` / `steps` / `cfg` 现在是「标量或沿链接取字面量」（`follow_scalar`，最多两跳），
+  能读 `Seed Generator (Image Saver)`、`Cfg Literal`、`Int Literal` 这类辅助节点。
+- 新增 `Image Saver` 兜底：采样器链路缺 positive/negative 时，从挂了 `positive`/`negative` 的
+  `Image Saver` 节点取。
+
+### 验证
+
+- 新增 `parses_custom_sampler_with_wildcard_nodes`（合成图，`SamplerCustomAdvanced + CFGGuider + ImpactWildcardEncode + KSamplerSelect`）。
+- 新增 `parses_ntrmix_sample`（真实样本，文件不在则跳过）：`source=comfyui`、正向含 `red_eyes`、负向含 `lowres`、
+  模型 `ntrMIXIllustriousXL_v40.safetensors`、`steps=25`、`cfg=6.0`、`seed=694162098710117`、
+  采样器 `dpmpp_2m_dy_cfg_pp_ays+`。
+- `cargo test --release`：**11/11 通过**。

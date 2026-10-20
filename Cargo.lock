@@ -471,7 +471,7 @@ dependencies = [
 
 [[package]]
 name = "comfy-png-inspector"
-version = "0.1.0"
+version = "0.2.2"
 dependencies = [
  "anyhow",
  "arboard",

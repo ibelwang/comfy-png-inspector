@@ -517,7 +517,8 @@ copy target\release\comfy-png-inspector.exe dist\ComfyPNG.exe
 
 - 仓库：<https://github.com/ibelwang/comfy-png-inspector>（public）
 - 许可证：**MIT**（`LICENSE`，版权署名 "ComfyPNG contributors"；要写个人名就改这一行）
-- 首个 Release：`v0.2.1`，附件 `ComfyPNG.exe`（5.5 MB）
+- 首个 Release：`v0.2.1`（2026-10-18），附件 `ComfyPNG.exe`
+- 第二个 Release：`v0.2.2`（2026-10-20），包含第 16 节的自定义节点解析修复；`Cargo.toml` 版本同步为 0.2.2
 - 文档：`README.md`（英）、`README.zh-CN.md`（中，顶部有语言切换），截图放 `docs/`
 - CI：暂未启用。`.github/workflows/ci.yml`（windows-latest 跑 `cargo test --release`）写好过，
   但 `gh` 的 OAuth token 没有 `workflow` scope，推送被 GitHub 拒绝；文件已移除。
